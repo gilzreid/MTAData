@@ -3,12 +3,11 @@ library(tidyverse)
 library(ggplot2)
 library(lubridate)
 
-setwd("G:/My Drive/SAC/Staff/GR/COVID_Dashboard/MTA Data")
+#setwd("G:/My Drive/SAC/Staff/GR/COVID_Dashboard/MTA Data")
 
-download <- getURL("http://web.mta.info/developers/data/nyct/fares/fares_200425.csv")
-Test <- read.csv (text = download, stringsAsFactors = FALSE, skip = 2)
-
-Test1 <- Test %>% replace(is.na(.), 0) %>% mutate(Total = rowSums(.[3:29]))
+#download <- getURL("http://web.mta.info/developers/data/nyct/fares/fares_200425.csv")
+#Test <- read.csv (text = download, stringsAsFactors = FALSE, skip = 2)
+#Test1 <- Test %>% replace(is.na(.), 0) %>% mutate(Total = rowSums(.[3:29]))
 
 # Starting point for 2020 data
 #StartDate = Saturday, January 04, 2020
