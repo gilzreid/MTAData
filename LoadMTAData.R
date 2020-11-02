@@ -46,17 +46,29 @@ Dates <- data.frame("Date" = seq(StartDate, EndDate, by="week")) %>%
                  ShortDate, ".csv")) %>%
     mutate(weeknumber = strftime(Date, "%V"))
  
+# Load in existing data and only download dates that aren't already downloaded
+ExistingData <- read.csv("MTA_weekly_data_2020.csv", stringsAsFactors = FALSE) %>%
+  mutate(date = as.Date(date), weeknumber = strftime(date, "%V"))
 
+Dates_2020 <- ExistingData %>%
+  select(date) %>%
+  unique() %>%
+  mutate(existing_date = 1)
+  
+  
+new_dates <- Dates %>% 
+    left_join(Dates_2020, by = c("Date" = "date")) %>%
+    filter(is.na(existing_date))
 
-for (x in c(1:nrow(Dates))) {
-  print(paste0(x, " ", Dates[x, 1]))
-  download <- getURL(Dates[x, 3])
-  Dset <- read.csv(text = download, stringsAsFactors = FALSE, skip = 2) %>% 
+for (x in c(1:nrow(new_dates))) {
+  print(paste0(x, " ", new_dates[x, 1]))
+  download <- getURL(new_dates[x, 3])
+  Dset <- read.csv(text = download, stringsAsFactors = FALSE, skip = 2) %>%
     replace(is.na(.), 0)
   Dset[,c(3:29)] <- sapply(Dset[, c(3:29)], as.numeric)
-  Dset <- Dset %>% mutate(Total = rowSums(.[3:29])) %>% mutate(date = Dates[x,1]) %>%
-           mutate(weeknumber = Dates[x,4])
-  
+  Dset <- Dset %>% mutate(Total_2020 = rowSums(.[3:29])) %>% mutate(date = new_dates[x,1]) %>%
+           mutate(weeknumber = new_dates[x,4])
+
   if (x == 1) {
     out <- Dset
   }
@@ -64,6 +76,27 @@ for (x in c(1:nrow(Dates))) {
     out <- bind_rows(out, Dset) %>% replace(is.na(.), 0)
   }
 }
+
+out_combined <- bind_rows(ExistingData, out)
+
+# For reading in all dates
+
+# for (x in c(1:nrow(Dates))) {
+#   print(paste0(x, " ", Dates[x, 1]))
+#   download <- getURL(Dates[x, 3])
+#   Dset <- read.csv(text = download, stringsAsFactors = FALSE, skip = 2) %>% 
+#     replace(is.na(.), 0)
+#   Dset[,c(3:29)] <- sapply(Dset[, c(3:29)], as.numeric)
+#   Dset <- Dset %>% mutate(Total = rowSums(.[3:29])) %>% mutate(date = Dates[x,1]) %>%
+#            mutate(weeknumber = Dates[x,4])
+#   
+#   if (x == 1) {
+#     out <- Dset
+#   }
+#   else {
+#     out <- bind_rows(out, Dset) %>% replace(is.na(.), 0)
+#   }
+# }
 
 
 # If we want to re-write out the 2019 data this can be used:
@@ -76,20 +109,31 @@ MTAFares_2019 <- read.csv("MTAFares_2019.csv", stringsAsFactors = FALSE)
  
 # This creates the overall counts by week for the 2019 dataset.
 # Note we use the weeknumber as the 2019 to 2020 comparison linkage variable.
-historical_summary <- MTAFares_2019 %>% group_by(date) %>% summarise(weekly_ridership_2019 = sum(Total)) %>%
-    filter(strftime(date, "%Y") == 2019) %>% mutate(weeknumber = strftime(date, "%V")) %>%
-    select(weekly_ridership_2019, weeknumber)
+historical_summary <- MTAFares_2019 %>% 
+  group_by(date) %>% 
+  summarise(weekly_ridership_2019 = sum(Total)) %>%
+  filter(strftime(date, "%Y") == 2019) %>% 
+  mutate(weeknumber = strftime(date, "%V")) %>%
+  select(weekly_ridership_2019, weeknumber)
 
 # This creates the by-station 2019 dataset with the week number.
 historical_by_station <- MTAFares_2019 %>% 
-  select(REMOTE, date, Total_2019 = Total) %>% mutate(weeknumber = strftime(date, "%V")) %>%
+  select(REMOTE, date, Total_2019 = Total) %>% 
+  mutate(weeknumber = strftime(date, "%V")) %>%
   select(REMOTE, weeknumber, Total_2019)
 
 # Take the 2020 data and join the 2019 numbers onto it so that we have a final dataset
 # with 2019 total and 2020 total for each station and each week.
-weekly_data_2020 <- out %>% filter(strftime(date, "%Y") == 2020) %>%
-    left_join(historical_by_station, by = c("REMOTE", "weeknumber")) %>%
-    select(REMOTE, STATION, date, weeknumber, Total_2020 = Total, Total_2019)
+# weekly_data_2020 <- out_combined %>% 
+#   select(-Total_2019) %>%
+#   filter(strftime(date, "%Y") == 2020) %>%
+#   left_join(historical_by_station, by = c("REMOTE", "weeknumber")) %>%
+#   select(REMOTE, STATION, date, weeknumber, Total_2020 = Total, Total_2019)
+weekly_data_2020 <- out_combined %>%
+  select(-Total_2019) %>%
+  filter(strftime(date, "%Y") == 2020) %>%
+  left_join(historical_by_station, by = c("REMOTE", "weeknumber")) %>%
+  select(REMOTE, STATION, date, weeknumber, Total_2020, Total_2019)
 
 write.csv(weekly_data_2020, "MTA_weekly_data_2020.csv", row.names = FALSE, na = "")
 
@@ -97,10 +141,21 @@ write.csv(weekly_data_2020, "MTA_weekly_data_2020.csv", row.names = FALSE, na = 
 # This dataset just includes counts summed across all stations, making a much more compact file
 #
 #
- summary_2020 <- out %>% group_by(date) %>% summarise(weekly_ridership_2020 = sum(Total)) %>%
-   filter(strftime(date, "%Y") == 2020) %>% mutate(weeknumber = strftime(date, "%V")) %>%
-   select(weekly_ridership_2020, weeknumber, date)
- 
+ # summary_2020 <- out_combined %>% 
+ #   group_by(date) %>% 
+ #   summarise(weekly_ridership_2020 = sum(Total_2020)) %>%
+ #   filter(strftime(date, "%Y") == 2020) %>% 
+ #   mutate(weeknumber = strftime(date, "%V")) %>%
+ #   select(weekly_ridership_2020, weeknumber, date)
+ #
+
+summary_2020 <- weekly_data_2020 %>%
+  group_by(date) %>%
+  summarise(weekly_ridership_2020 = sum(Total_2020)) %>%
+  filter(strftime(date, "%Y") == 2020) %>%
+  mutate(weeknumber = strftime(date, "%V")) %>%
+  select(weekly_ridership_2020, weeknumber, date)
+
  summary_dataset <- left_join(summary_2020, historical_summary, by = "weeknumber") %>% 
    select(date, weeknumber, weekly_ridership_2019, weekly_ridership_2020)
  
