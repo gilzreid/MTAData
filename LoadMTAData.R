@@ -131,7 +131,8 @@ historical_by_station <- MTAFares_2019 %>%
 #   select(REMOTE, STATION, date, weeknumber, Total_2020 = Total, Total_2019)
 weekly_data_2020 <- out_combined %>%
   select(-Total_2019) %>%
-  filter(strftime(date, "%Y") == 2020) %>%
+  #filter(strftime(date, "%Y") == 2020) %>%
+  mutate(weeknumber = if_else(as.numeric(weeknumber) == 53, as.character(52), weeknumber)) %>%
   left_join(historical_by_station, by = c("REMOTE", "weeknumber")) %>%
   select(REMOTE, STATION, date, weeknumber, Total_2020, Total_2019)
 
