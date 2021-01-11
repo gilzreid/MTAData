@@ -153,8 +153,9 @@ write.csv(weekly_data_2020, "MTA_weekly_data_2020.csv", row.names = FALSE, na = 
 summary_2020 <- weekly_data_2020 %>%
   group_by(date) %>%
   summarise(weekly_ridership_2020 = sum(Total_2020)) %>%
-  filter(strftime(date, "%Y") == 2020) %>%
-  mutate(weeknumber = strftime(date, "%V")) %>%
+  #filter(strftime(date, "%Y") == 2020) %>%
+  mutate(weeknumber = strftime(date, "%V"),
+         weeknumber = if_else(as.numeric(weeknumber) == 53, as.character(52), weeknumber)) %>%
   select(weekly_ridership_2020, weeknumber, date)
 
  summary_dataset <- left_join(summary_2020, historical_summary, by = "weeknumber") %>% 
