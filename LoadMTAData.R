@@ -26,8 +26,6 @@ library(lubridate)
 # Author:
 #   Giles Reid (giles.reid@columbia.edu)
 #
-#
-
 
 
 # Starting point for 2019 data
