@@ -172,3 +172,8 @@ summary_2020 <- weekly_data_2020 %>%
 #Test <- read.csv (text = download, stringsAsFactors = FALSE, skip = 2)
 #Test1 <- Test %>% replace(is.na(.), 0) %>% mutate(Total = rowSums(.[3:29]))
 
+## Graph to check data looks sensible
+summary_dataset %>% pivot_longer(cols = starts_with("weekly_"), names_to = "year", values_to = "weekly_ridership") %>%
+  ggplot(aes(x = date, y = weekly_ridership, color = year)) +
+  geom_line()
+ 
