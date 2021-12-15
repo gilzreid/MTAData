@@ -177,3 +177,4 @@ summary_dataset %>% pivot_longer(cols = starts_with("weekly_"), names_to = "year
   ggplot(aes(x = date, y = weekly_ridership, color = year)) +
   geom_line()
  
+
